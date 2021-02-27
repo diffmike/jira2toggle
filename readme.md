@@ -1,5 +1,5 @@
 ### Sync Toggl time entries with Jira worklogs
-It takes all your jira issues without worklogs with In Review or In Progress state  
+It takes your jira issues with In Review or In Progress state  
 and check them according the latest toggle entries if there are such issues keys in a description,  
 if it is found - the time entry log from toggl will be synced into the found jira issue 
 
@@ -11,7 +11,7 @@ if it is found - the time entry log from toggl will be synced into the found jir
 2.3 The third line is your jira password (can be generated in the [jira cloud account page](https://id.atlassian.com/manage-profile/security/api-tokens))  
 2.4 The fourth line is your toggle token (can be found at [the toggle profile page](https://track.toggl.com/profile))  
 2.5 (optional) On the fifth line you can put your own Jira Query (the default is   
-`assignee = currentUser() and (status = 'In Review' or status = 'In progress') and timespent IS EMPTY order by updated desc`)
+`assignee = currentUser() and (status = 'In Review' or status = 'In progress') order by updated desc`)
 
 #### Usage
 1. Execute the app `./toggjir`

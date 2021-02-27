@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/dougEfresh/gtoggl v0.0.0-20181020132158-0c52db5c669b
-	github.com/dougEfresh/gtoggl-api v0.0.0-20200303083000-7924af45c7f9 // indirect
+	github.com/dougEfresh/gtoggl-api v0.0.0-20200303083000-7924af45c7f9
 	github.com/fatih/structs v1.1.0 // indirect
 	github.com/gomodule/redigo v1.8.3 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect

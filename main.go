@@ -3,7 +3,9 @@ package main
 import (
 	"bufio"
 	"flag"
+	"fmt"
 	"github.com/dougEfresh/gtoggl"
+	gttimeentry "github.com/dougEfresh/gtoggl-api/gttimentry"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/andygrunwald/go-jira.v1"
 	"os"
@@ -17,6 +19,7 @@ type settings struct {
 	jiraUrl      string
 	jiraQuery    string
 	toggleToken  string
+	dryRun       bool
 }
 
 func main() {
@@ -30,13 +33,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	config.dryRun = *dryRun
 
 	tp := jira.BasicAuthTransport{Username: config.jiraName, Password: config.jiraPassword}
 	jiraClient, err := jira.NewClient(tp.Client(), config.jiraUrl)
 	if err != nil {
 		panic(err)
 	}
-	issues, _, err := jiraClient.Issue.Search(config.jiraQuery, nil)
+	issueService := jiraClient.Issue
+	issues, _, err := issueService.Search(config.jiraQuery, nil)
 	if err != nil {
 		panic(err)
 	}
@@ -57,18 +62,36 @@ func main() {
 		for _, w := range worklogs {
 			log.Debugf("-> Checking worklog '%s' for jira issue '%s'", w.Description, i.Key)
 			if strings.Contains(w.Description, i.Key) {
-				url := config.jiraUrl + "browse/" + i.Key
-				log.Infof("There are %d minutes for an issue %s\n", int(w.Duration/60), url)
-				if *dryRun {
-					continue
-				}
-				_, _, err := jiraClient.Issue.AddWorklogRecord(i.Key, &jira.WorklogRecord{TimeSpentSeconds: int(w.Duration)})
+				err := processIssue(config, issueService, i, w)
 				if err != nil {
 					panic(err)
 				}
 			}
 		}
 	}
+}
+
+func processIssue(config settings, issueService *jira.IssueService, issue jira.Issue, worklog gttimeentry.TimeEntry) error {
+	url := config.jiraUrl + "browse/" + issue.Key
+	logs, _, err := issueService.GetWorklogs(issue.Key)
+	if err != nil {
+		return err
+	}
+
+	comment := fmt.Sprintf("toggl#%d", worklog.Tid)
+	for _, l := range logs.Worklogs {
+		if l.TimeSpentSeconds == int(worklog.Duration) || l.Comment == comment {
+			return nil
+		}
+	}
+	log.Infof("There are %d minutes for an issue %s\n", int(worklog.Duration/60), url)
+	if config.dryRun {
+		return nil
+	}
+
+	_, _, err = issueService.AddWorklogRecord(issue.Key, &jira.WorklogRecord{
+		TimeSpentSeconds: int(worklog.Duration), Comment: comment})
+	return err
 }
 
 func readSettings() (result settings, err error) {
@@ -93,7 +116,7 @@ func readSettings() (result settings, err error) {
 	scanner.Scan()
 	result.toggleToken = strings.TrimSpace(scanner.Text())
 	scanner.Scan()
-	result.jiraQuery = "assignee = currentUser() and (status = 'In Review' or status = 'In progress') and timespent IS EMPTY order by updated desc"
+	result.jiraQuery = "assignee = currentUser() and (status = 'In Review' or status = 'In progress') order by updated desc"
 	if scanner.Text() != "" {
 		result.jiraQuery = strings.TrimSpace(scanner.Text())
 	}
