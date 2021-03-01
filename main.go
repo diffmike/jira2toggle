@@ -60,6 +60,10 @@ func main() {
 	for _, i := range issues {
 		log.Debugf("Jira issue '%s' is in progress", i.Key)
 		for _, w := range worklogs {
+			if w.Duration <= 0 {
+				continue
+			}
+
 			log.Debugf("-> Checking worklog '%s' for jira issue '%s'", w.Description, i.Key)
 			if strings.Contains(w.Description, i.Key) {
 				err := processIssue(config, issueService, i, w)
@@ -78,7 +82,7 @@ func processIssue(config settings, issueService *jira.IssueService, issue jira.I
 		return err
 	}
 
-	comment := fmt.Sprintf("toggl#%d", worklog.Tid)
+	comment := fmt.Sprintf("toggl#%d", worklog.Id)
 	for _, l := range logs.Worklogs {
 		if l.TimeSpentSeconds == int(worklog.Duration) || l.Comment == comment {
 			return nil
